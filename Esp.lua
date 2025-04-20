@@ -139,11 +139,13 @@ end)
 
 -- // UNLOAD FUNCTION
 getgenv().ESPUnload = function()
+    -- Disconnect RenderStepped listener
     if updateConnection then
         updateConnection:Disconnect()
         updateConnection = nil
     end
 
+    -- Remove drawings
     for _, playerDrawings in pairs(drawings) do
         for _, drawing in pairs(playerDrawings) do
             if typeof(drawing) == "Drawing" then
@@ -154,3 +156,10 @@ getgenv().ESPUnload = function()
     drawings = {}
     print("✅ ESP completely unloaded.")
 end
+
+-- // ESP LOOP
+updateConnection = RunService.RenderStepped:Connect(function()
+    updateESP()
+end)
+
+print("✅ ESP Loaded with toggles: Boxes ["..tostring(settings.showBoxes).."], Names ["..tostring(settings.showNames).."], Distances ["..tostring(settings.showDistance).."]")
