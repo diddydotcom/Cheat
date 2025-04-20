@@ -21,7 +21,7 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CamlockUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = game.CoreGui
-getfenv().FOVGui = screenGui -- ✅ expose GUI for cleanup
+getgenv().FOVGui = screenGui -- ✅ expose GUI for cleanup
 
 -- FOV Circle
 local fovCircle = Instance.new("Frame", screenGui)
@@ -116,5 +116,15 @@ local renderConnection = RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ✅ Expose cleanup to external toggle
-getfenv().aimConnections = {inputConnection, renderConnection}
+-- ✅ Unload function for toggle-based UI
+getgenv().CamlockUnload = function()
+    pcall(function()
+        if inputConnection then inputConnection:Disconnect() end
+        if renderConnection then renderConnection:Disconnect() end
+        if screenGui then screenGui:Destroy() end
+
+        -- Wipe references
+        getgenv().CamlockUnload = nil
+        getgenv().FOVGui = nil
+    end)
+end
