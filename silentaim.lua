@@ -1,7 +1,10 @@
 -- // SETTINGS
 local Settings = {
     Prediction = 0.135, -- adjust this for ping
-    FOV = 150,
+    FOV = 150,  -- Initial FOV
+    FOVMin = 50,  -- Minimum FOV size
+    FOVMax = 200,  -- Maximum FOV size
+    FOVRainbow = false,  -- Toggle rainbow FOV effect
     AimPartPriority = {"Head", "UpperTorso", "LowerTorso", "LeftLeg", "RightLeg"},
     SilentAimEnabled = true
 }
@@ -12,11 +15,13 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local Camera = workspace.CurrentCamera
+local TweenService = game:GetService("TweenService")
 
 -- // GUI Setup
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
 screenGui.Name = "SilentAimUI"
 
+-- FOV Circle
 local fovCircle = Instance.new("Frame", screenGui)
 fovCircle.Size = UDim2.new(0, Settings.FOV * 2, 0, Settings.FOV * 2)
 fovCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -55,10 +60,18 @@ local function getClosestTarget()
     return closest, targetPart
 end
 
--- // FOV Circle Follow
+-- // FOV Circle Follow with FOV Slider
 RunService.RenderStepped:Connect(function()
     fovCircle.Position = UDim2.new(0, Mouse.X, 0, Mouse.Y)
     fovCircle.Size = UDim2.new(0, Settings.FOV * 2, 0, Settings.FOV * 2)
+
+    -- Rainbow FOV Effect
+    if Settings.FOVRainbow then
+        local hue = tick() % 5 / 5  -- Changes color over time
+        fovCircle.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
+    else
+        fovCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)  -- Default color (White)
+    end
 end)
 
 -- // Silent Aim Hook
@@ -80,4 +93,33 @@ mt.__namecall = newcclosure(function(self, ...)
     end
 
     return oldNamecall(self, ...)
+end)
+
+-- // Main Menu: FOV Slider
+local fovSlider = Instance.new("Slider", screenGui)  -- Assuming you are using a GUI system to adjust FOV
+fovSlider.MinValue = Settings.FOVMin
+fovSlider.MaxValue = Settings.FOVMax
+fovSlider.Value = Settings.FOV
+fovSlider.OnValueChanged:Connect(function(newValue)
+    Settings.FOV = newValue  -- Adjusts FOV based on slider value
+end)
+
+-- // Main Menu: Rainbow Toggle
+local rainbowToggle = Instance.new("TextButton", screenGui)  -- Assuming this is a button to toggle rainbow effect
+rainbowToggle.Text = "Toggle Rainbow FOV"
+rainbowToggle.Position = UDim2.new(0, 0, 0, 50)  -- Adjust this position as needed
+rainbowToggle.Size = UDim2.new(0, 200, 0, 50)
+rainbowToggle.MouseButton1Click:Connect(function()
+    Settings.FOVRainbow = not Settings.FOVRainbow
+    rainbowToggle.Text = Settings.FOVRainbow and "Rainbow FOV: ON" or "Rainbow FOV: OFF"
+end)
+
+-- // Silent Aim GUI Controls (Optional)
+local silentAimToggle = Instance.new("TextButton", screenGui)  -- Toggle to enable/disable Silent Aim
+silentAimToggle.Text = "Toggle Silent Aim"
+silentAimToggle.Position = UDim2.new(0, 0, 0, 100)
+silentAimToggle.Size = UDim2.new(0, 200, 0, 50)
+silentAimToggle.MouseButton1Click:Connect(function()
+    Settings.SilentAimEnabled = not Settings.SilentAimEnabled
+    silentAimToggle.Text = Settings.SilentAimEnabled and "Silent Aim: ON" or "Silent Aim: OFF"
 end)
