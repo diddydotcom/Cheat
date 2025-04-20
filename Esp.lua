@@ -18,6 +18,7 @@ local Camera = workspace.CurrentCamera
 
 -- // ESP VARIABLES
 local drawings = {}
+local updateConnection -- will hold the RenderStepped connection
 
 -- // UTILITY FUNCTIONS
 local function getDistance(pos)
@@ -33,7 +34,7 @@ local function getColor(player)
     end
 end
 
--- // ESP CREATION AND UPDATE FUNCTIONS
+-- // CREATE ESP
 local function createESP(player)
     if player == LocalPlayer then return end
     local box = Drawing.new("Square")
@@ -55,6 +56,7 @@ local function createESP(player)
     drawings[player] = {Box = box, Name = nameText, Distance = distanceText}
 end
 
+-- // UPDATE ESP
 local function updateESP()
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
@@ -64,8 +66,6 @@ local function updateESP()
 
             local char = player.Character
             local hrp = char:FindFirstChild("HumanoidRootPart")
-            local head = char:FindFirstChild("Head")
-
             local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
             local color = getColor(player)
             local dist = getDistance(hrp.Position)
@@ -78,7 +78,6 @@ local function updateESP()
                 local scale = 1 / (hrp.Position - Camera.CFrame.Position).Magnitude * 100
                 local boxSize = Vector2.new(30 * scale, 60 * scale)
 
-                -- 📦 Box
                 if settings.showBoxes then
                     box.Position = Vector2.new(screenPos.X - boxSize.X / 2, screenPos.Y - boxSize.Y / 2)
                     box.Size = boxSize
@@ -88,7 +87,6 @@ local function updateESP()
                     box.Visible = false
                 end
 
-                -- 🧍 Name
                 if settings.showNames then
                     nameText.Text = player.Name
                     nameText.Position = Vector2.new(screenPos.X, screenPos.Y - boxSize.Y / 2 - 15)
@@ -98,7 +96,6 @@ local function updateESP()
                     nameText.Visible = false
                 end
 
-                -- 📏 Distance
                 if settings.showDistance then
                     distanceText.Text = "[" .. tostring(dist) .. "m]"
                     distanceText.Position = Vector2.new(screenPos.X, screenPos.Y + boxSize.Y / 2 + 5)
@@ -108,7 +105,6 @@ local function updateESP()
                     distanceText.Visible = false
                 end
 
-                -- 🎨 Texturing (Optional visual effects)
                 if settings.textureEnabled and char:FindFirstChildOfClass("Humanoid") then
                     for _, part in pairs(char:GetChildren()) do
                         if part:IsA("BasePart") then
@@ -129,32 +125,37 @@ local function updateESP()
     end
 end
 
--- // ESP CLEANUP FUNCTION
-getgenv().ESPUnload = function()
-    for _, d in pairs(drawings) do
-        for _, obj in pairs(d) do
-            if typeof(obj) == "Drawing" then
-                obj:Remove() -- Remove drawing objects
-            end
-        end
-    end
-    drawings = {} -- Clear the drawings table
-    print("✅ ESP Unloaded and cleaned up.")
-end
-
--- // ESP LOOP
-RunService.RenderStepped:Connect(function()
-    updateESP()
-end)
-
--- // PLAYER LEAVING CLEANUP
+-- // CLEANUP ON PLAYER LEAVE
 Players.PlayerRemoving:Connect(function(player)
     if drawings[player] then
         for _, obj in pairs(drawings[player]) do
-            obj:Remove()
+            if typeof(obj) == "Drawing" then
+                obj:Remove()
+            end
         end
         drawings[player] = nil
     end
 end)
 
-print("✅ ESP Loaded with toggles: Boxes ["..tostring(settings.showBoxes).."], Names ["..tostring(settings.showNames).."], Distances ["..tostring(settings.showDistance).."]")
+-- // UNLOAD FUNCTION
+getgenv().ESPUnload = function()
+    if updateConnection then
+        updateConnection:Disconnect()
+        updateConnection = nil
+    end
+
+    for _, d in pairs(drawings) do
+        for _, obj in pairs(d) do
+            if typeof(obj) == "Drawing" then
+                obj:Remove()
+            end
+        end
+    end
+    drawings = {}
+    print("✅ ESP completely unloaded.")
+end
+
+-- // START THE LOOP
+updateConnection = RunService.RenderStepped:Connect(updateESP)
+
+print("✅ ESP Loaded with full unload support")
