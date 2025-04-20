@@ -1,10 +1,4 @@
--- Da Hood ESP by ChatGPT (2025 Edition)
-
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
--- ⚙️ Settings
+-- // SETTINGS
 local settings = {
     showBoxes = true,
     showNames = true,
@@ -15,7 +9,17 @@ local settings = {
     updateRate = 0.05
 }
 
--- 🧠 Utility Functions
+-- // SERVICES
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local workspace = game:GetService("Workspace")
+local Camera = workspace.CurrentCamera
+
+-- // ESP VARIABLES
+local drawings = {}
+
+-- // UTILITY FUNCTIONS
 local function getDistance(pos)
     return (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")) and
         math.floor((LocalPlayer.Character.HumanoidRootPart.Position - pos).Magnitude) or 0
@@ -29,21 +33,7 @@ local function getColor(player)
     end
 end
 
--- 🧩 ESP Container
-local drawings = {}
-
-local function clearESP()
-    for _, espObjects in pairs(drawings) do
-        for _, obj in pairs(espObjects) do
-            -- Safely remove the drawing objects
-            if typeof(obj) == "Drawing" then
-                pcall(function() obj:Remove() end)
-            end
-        end
-    end
-    drawings = {}  -- Clear the ESP data
-end
-
+-- // ESP CREATION AND UPDATE FUNCTIONS
 local function createESP(player)
     if player == LocalPlayer then return end
     local box = Drawing.new("Square")
@@ -62,7 +52,6 @@ local function createESP(player)
     distanceText.Center = true
     distanceText.Outline = true
 
-    -- Store the created drawings
     drawings[player] = {Box = box, Name = nameText, Distance = distanceText}
 end
 
@@ -77,7 +66,7 @@ local function updateESP()
             local hrp = char:FindFirstChild("HumanoidRootPart")
             local head = char:FindFirstChild("Head")
 
-            local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
+            local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
             local color = getColor(player)
             local dist = getDistance(hrp.Position)
 
@@ -86,7 +75,7 @@ local function updateESP()
             local distanceText = drawings[player].Distance
 
             if onScreen then
-                local scale = 1 / (hrp.Position - workspace.CurrentCamera.CFrame.Position).Magnitude * 100
+                local scale = 1 / (hrp.Position - Camera.CFrame.Position).Magnitude * 100
                 local boxSize = Vector2.new(30 * scale, 60 * scale)
 
                 -- 📦 Box
@@ -128,13 +117,11 @@ local function updateESP()
                     end
                 end
             else
-                -- Make invisible if off-screen
                 box.Visible = false
                 nameText.Visible = false
                 distanceText.Visible = false
             end
         elseif drawings[player] then
-            -- Hide drawings if player is not present
             for _, obj in pairs(drawings[player]) do
                 obj.Visible = false
             end
@@ -142,22 +129,32 @@ local function updateESP()
     end
 end
 
--- 🌀 ESP Loop
+-- // ESP CLEANUP FUNCTION
+getgenv().ESPUnload = function()
+    for _, d in pairs(drawings) do
+        for _, obj in pairs(d) do
+            if typeof(obj) == "Drawing" then
+                obj:Remove() -- Remove drawing objects
+            end
+        end
+    end
+    drawings = {} -- Clear the drawings table
+    print("✅ ESP Unloaded and cleaned up.")
+end
+
+-- // ESP LOOP
 RunService.RenderStepped:Connect(function()
     updateESP()
 end)
 
--- 🧼 Clean up on leave
+-- // PLAYER LEAVING CLEANUP
 Players.PlayerRemoving:Connect(function(player)
     if drawings[player] then
         for _, obj in pairs(drawings[player]) do
-            pcall(function() obj:Remove() end)
+            obj:Remove()
         end
         drawings[player] = nil
     end
 end)
-
--- Expose the clearESP function globally so we can call it from the main script when toggling off ESP
-getgenv().clearESP = clearESP
 
 print("✅ ESP Loaded with toggles: Boxes ["..tostring(settings.showBoxes).."], Names ["..tostring(settings.showNames).."], Distances ["..tostring(settings.showDistance).."]")
