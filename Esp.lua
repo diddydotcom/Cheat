@@ -144,18 +144,13 @@ getgenv().ESPUnload = function()
         updateConnection = nil
     end
 
-    for _, d in pairs(drawings) do
-        for _, obj in pairs(d) do
-            if typeof(obj) == "Drawing" then
-                obj:Remove()
+    for _, playerDrawings in pairs(drawings) do
+        for _, drawing in pairs(playerDrawings) do
+            if typeof(drawing) == "Drawing" then
+                drawing:Remove()
             end
         end
     end
     drawings = {}
     print("✅ ESP completely unloaded.")
 end
-
--- // START THE LOOP
-updateConnection = RunService.RenderStepped:Connect(updateESP)
-
-print("✅ ESP Loaded with full unload support")
