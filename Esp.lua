@@ -33,17 +33,15 @@ end
 local drawings = {}
 
 local function clearESP()
-    -- Clear ESP drawings from memory
-    for _, d in pairs(drawings) do
-        for _, obj in pairs(d) do
-            if typeof(obj) == "Instance" or typeof(obj) == "table" then
-                pcall(function() obj:Remove() end)
-            elseif typeof(obj) == "Drawing" then
+    for player, espObjects in pairs(drawings) do
+        -- Clear all drawings related to this player
+        for _, obj in pairs(espObjects) do
+            if typeof(obj) == "Drawing" then
                 obj:Remove()
             end
         end
     end
-    drawings = {} -- Reset the ESP container
+    drawings = {}  -- Reset the drawings table
 end
 
 local function createESP(player)
@@ -156,19 +154,7 @@ Players.PlayerRemoving:Connect(function(player)
     end
 end)
 
--- ESP Toggle Handler (to clear when toggled off)
-local ESPEnabled = false
-local function toggleESP()
-    ESPEnabled = not ESPEnabled
-    if ESPEnabled then
-        print("✅ ESP Loaded")
-        -- Optionally, start drawing and checking
-        RunService.RenderStepped:Connect(updateESP)
-    else
-        print("❌ ESP Unloaded")
-        clearESP() -- Completely clear all ESP drawings and reset
-    end
-end
+-- Allow the main script to call this function
+getgenv().clearESP = clearESP
 
--- Example of how you might use it with a GUI or key press toggle:
--- toggleESP() -- Call this function when you want to toggle the ESP on/off.
+print("✅ ESP Loaded with toggles: Boxes ["..tostring(settings.showBoxes).."], Names ["..tostring(settings.showNames).."], Distances ["..tostring(settings.showDistance).."]")
