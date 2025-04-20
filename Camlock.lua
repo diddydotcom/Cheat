@@ -17,13 +17,11 @@ local Camera = workspace.CurrentCamera
 local Target = nil
 
 -- // GUI SETUP
-local screenGui = Instance.new("ScreenGui")
+local screenGui = Instance.new("ScreenGui", game.CoreGui)
 screenGui.Name = "CamlockUI"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = game.CoreGui
-getgenv().FOVGui = screenGui -- ✅ expose GUI for cleanup
+getgenv().FOVGui = screenGui -- For external cleanup
 
--- FOV Circle
+-- FOV Circle (using UICorner for perfect circle)
 local fovCircle = Instance.new("Frame", screenGui)
 fovCircle.Size = UDim2.new(0, Settings.FOV * 2, 0, Settings.FOV * 2)
 fovCircle.BackgroundColor3 = Color3.new(1, 1, 1)
@@ -32,7 +30,7 @@ fovCircle.BorderSizePixel = 0
 fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
 
 local corner = Instance.new("UICorner", fovCircle)
-corner.CornerRadius = UDim.new(1, 0)
+corner.CornerRadius = UDim.new(1, 0) -- makes it a circle
 
 -- // SLIDER GENERATOR
 local function createSlider(name, min, max, default, posY, callback)
@@ -65,7 +63,7 @@ local function createSlider(name, min, max, default, posY, callback)
     end)
 end
 
--- Sliders
+-- // Sliders
 createSlider("FOV", 50, 400, Settings.FOV, 50, function(val)
     Settings.FOV = val
     fovCircle.Size = UDim2.new(0, val * 2, 0, val * 2)
@@ -75,7 +73,7 @@ createSlider("Prediction", 0.05, 0.35, Settings.Prediction, 80, function(val)
     Settings.Prediction = val
 end)
 
--- Get Closest Player in FOV
+-- // Get Closest in FOV
 local function getClosestPlayerInFOV()
     local closestPlayer = nil
     local shortestDistance = Settings.FOV
@@ -96,16 +94,20 @@ local function getClosestPlayerInFOV()
     return closestPlayer
 end
 
--- Toggle Aiming
-local inputConnection = UserInputService.InputBegan:Connect(function(input, gpe)
+-- // Connections for cleanup
+local inputConnection
+local renderConnection
+
+-- // Toggle Aiming
+inputConnection = UserInputService.InputBegan:Connect(function(input, gpe)
     if not gpe and input.KeyCode == Settings.AimKey then
         Settings.Aiming = not Settings.Aiming
         Target = Settings.Aiming and getClosestPlayerInFOV() or nil
     end
 end)
 
--- Aim + FOV Loop
-local renderConnection = RunService.RenderStepped:Connect(function()
+-- // Aim + FOV Position Update
+renderConnection = RunService.RenderStepped:Connect(function()
     fovCircle.Position = UDim2.new(0, Mouse.X, 0, Mouse.Y)
     fovCircle.Size = UDim2.new(0, Settings.FOV * 2, 0, Settings.FOV * 2)
 
@@ -116,14 +118,14 @@ local renderConnection = RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ✅ Unload function for toggle-based UI
+-- // UNLOAD FUNCTION
 getgenv().CamlockUnload = function()
     pcall(function()
         if inputConnection then inputConnection:Disconnect() end
         if renderConnection then renderConnection:Disconnect() end
         if screenGui then screenGui:Destroy() end
 
-        -- Wipe references
+        -- Clean up globals
         getgenv().CamlockUnload = nil
         getgenv().FOVGui = nil
     end)
