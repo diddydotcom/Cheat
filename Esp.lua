@@ -154,7 +154,7 @@ Players.PlayerRemoving:Connect(function(player)
     end
 end)
 
--- Allow the main script to call this function
+-- Make sure the clearESP function is globally available
 getgenv().clearESP = clearESP
 
 print("✅ ESP Loaded with toggles: Boxes ["..tostring(settings.showBoxes).."], Names ["..tostring(settings.showNames).."], Distances ["..tostring(settings.showDistance).."]")
