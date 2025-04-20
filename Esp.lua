@@ -33,15 +33,15 @@ end
 local drawings = {}
 
 local function clearESP()
-    for player, espObjects in pairs(drawings) do
-        -- Clear all drawings related to this player
+    for _, espObjects in pairs(drawings) do
         for _, obj in pairs(espObjects) do
+            -- Safely remove the drawing objects
             if typeof(obj) == "Drawing" then
-                obj:Remove()
+                pcall(function() obj:Remove() end)
             end
         end
     end
-    drawings = {}  -- Reset the drawings table
+    drawings = {}  -- Clear the ESP data
 end
 
 local function createESP(player)
@@ -62,6 +62,7 @@ local function createESP(player)
     distanceText.Center = true
     distanceText.Outline = true
 
+    -- Store the created drawings
     drawings[player] = {Box = box, Name = nameText, Distance = distanceText}
 end
 
@@ -110,4 +111,53 @@ local function updateESP()
 
                 -- 📏 Distance
                 if settings.showDistance then
-                    distanceText.Text = "[" .. tostring
+                    distanceText.Text = "[" .. tostring(dist) .. "m]"
+                    distanceText.Position = Vector2.new(screenPos.X, screenPos.Y + boxSize.Y / 2 + 5)
+                    distanceText.Color = color
+                    distanceText.Visible = true
+                else
+                    distanceText.Visible = false
+                end
+
+                -- 🎨 Texturing (Optional visual effects)
+                if settings.textureEnabled and char:FindFirstChildOfClass("Humanoid") then
+                    for _, part in pairs(char:GetChildren()) do
+                        if part:IsA("BasePart") then
+                            part.Color = color
+                        end
+                    end
+                end
+            else
+                -- Make invisible if off-screen
+                box.Visible = false
+                nameText.Visible = false
+                distanceText.Visible = false
+            end
+        elseif drawings[player] then
+            -- Hide drawings if player is not present
+            for _, obj in pairs(drawings[player]) do
+                obj.Visible = false
+            end
+        end
+    end
+end
+
+-- 🌀 ESP Loop
+RunService.RenderStepped:Connect(function()
+    updateESP()
+end)
+
+-- 🧼 Clean up on leave
+Players.PlayerRemoving:Connect(function(player)
+    if drawings[player] then
+        for _, obj in pairs(drawings[player]) do
+            pcall(function() obj:Remove() end)
+        end
+        drawings[player] = nil
+    end
+end)
+
+-- Expose the clearESP function globally so we can call it from the main script when toggling off ESP
+getgenv().clearESP = clearESP
+
+print("✅ ESP Loaded with toggles: Boxes ["..tostring(settings.showBoxes).."], Names ["..tostring(settings.showNames).."], Distances ["..tostring(settings.showDistance).."]")
